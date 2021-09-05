@@ -1,0 +1,82 @@
+kernel:
+  image: linuxkit/kernel:5.10.39
+  cmdline: "console=tty0 console=ttyS0"
+init:
+  - linuxkit/init:305e6125c5a36e175e6e97bb101579df72ef9fe0
+  - linuxkit/runc:v0.8
+  - linuxkit/containerd:1ae8f054e9fe792d1dbdb9a65f1b5e14491cb106
+  - linuxkit/ca-certificates:v0.8
+onboot:
+  - name: sysctl
+    image: linuxkit/sysctl:v0.8
+  - name: sysfs
+    image: linuxkit/sysfs:v0.8
+  - name: modprobe
+    image: linuxkit/modprobe:v0.8
+    command: ['modprobe', '-a', 'tun']
+  - name: format
+    image: linuxkit/format:v0.8
+  - name: fsck
+    image: alpine:latest
+    capabilities:
+      - CAP_SYS_ADMIN
+    binds:
+      - /dev:/dev
+    command: ["/bin/fsck", "-A"]
+  - name: mount
+    image: linuxkit/mount:v0.8
+    command: ["/usr/bin/mountie", "/var/lib/docker"]
+  - name: ip
+    image: linuxkit/ip:v0.8
+    binds:
+      - /etc/ip:/etc/ip
+    command: ["ip", "-b", "/etc/ip/eth0.conf"]
+services:
+  - name: acpid
+    image: linuxkit/acpid:v0.8
+  - name: qemu-ga
+    image: linuxkit/qemu-ga:v0.8
+  - name: rngd
+    image: linuxkit/rngd:v0.8
+  - name: dhcpcd
+    image: linuxkit/dhcpcd:v0.8
+  - name: sshd
+    image: linuxkit/sshd:v0.8
+  - name: ntpd
+    image: linuxkit/openntpd:v0.8
+  - name: docker
+    image: docker:20.10.7-dind
+    capabilities:
+      - all
+    net: host
+    mounts:
+      - type: cgroup
+        options: ["rw","nosuid","noexec","nodev","relatime"]
+    binds:
+      - /dev/net/tun:/dev/net/tun
+      - /etc/docker/daemon.json:/etc/docker/daemon.json
+      - /etc/resolv.conf:/etc/resolv.conf
+      - /lib/modules:/lib/modules
+      - /var/lib/docker:/var/lib/docker 
+    command: ["/usr/local/bin/docker-init", "/usr/local/bin/dockerd"]
+files:
+  - path: var/lib/docker
+    directory: true
+  - path: etc/docker/daemon.json
+    contents: '{"hosts": ["tcp://192.168.254.100:2375"],"dns":["1.1.1.1", "1.0.0.1"]}'
+  - path: etc/ip
+    directory: true
+  - path: etc/ip/eth0.conf
+    contents: |
+      address add 192.168.254.100/16 dev eth0
+      link set eth0 up
+  - path: root/.ssh
+    directory: true
+  - path: root/.ssh/authorized_keys
+    mode: "0600"
+    contents: |
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHdAOLEC27Kdqbkez60CUW3lvx376mb+PVaAC005EhmO
+trust:
+  org:
+    - linuxkit
+    - library
