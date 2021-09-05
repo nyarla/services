@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:12-alpine
+    restart: unless-stopped
+    env_file:
+      - ../../config/tt-rss/env
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/tt-rss/env
+    volumes:
+      - app:/var/www/html
+      - ../../external/tt-rss/docker-compose/config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - db
+    command: sh /opt/tt-rss/startup.sh
+
+  backups:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/tt-rss/env
+    volumes:
+      - backups:/backups
+      - app:/var/www/html
+    depends_on:
+      - db
+    command: /opt/tt-rss//dcron.sh -f
+
+  updater:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/tt-rss/env
+    volumes:
+      - app:/var/www/html
+      - ../../external/tt-rss/docker-compose/config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - app
+    command: sh /opt/tt-rss/updater.sh
+
+  tailscale:
+    hostname: reader
+    build:
+      context: ../../external/tailscale
+    restart: unless-stopped
+    volumes:
+      - tailscale:/var/lib
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    command: 'sh -c "apk add socat && (/usr/local/bin/tailscaled & socat TCP-LISTEN:80,fork TCP:web:80)"'
+    ports:
+      - 41641:41641/udp
+    depends_on:
+      - web
+
+  web:
+    build:
+      context: ../../external/tt-rss/docker-compose/web-nginx
+    volumes:
+      - app:/var/www/html:ro
+    depends_on:
+      - app
+
+volumes:
+  app:
+  backups:
+  certs:
+  db:
+  tailscale:
