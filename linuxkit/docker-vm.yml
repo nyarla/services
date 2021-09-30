@@ -16,13 +16,6 @@ onboot:
     command: ['modprobe', '-a', 'tun']
   - name: format
     image: linuxkit/format:v0.8
-  - name: fsck
-    image: alpine:latest
-    capabilities:
-      - CAP_SYS_ADMIN
-    binds:
-      - /dev:/dev
-    command: ["/bin/fsck", "-A"]
   - name: mount
     image: linuxkit/mount:v0.8
     command: ["/usr/bin/mountie", "/var/lib/docker"]
@@ -63,12 +56,12 @@ files:
   - path: var/lib/docker
     directory: true
   - path: etc/docker/daemon.json
-    contents: '{"hosts": ["tcp://192.168.254.100:2375"],"dns":["1.1.1.1", "1.0.0.1"]}'
+    contents: '{"hosts": ["tcp://192.168.254.200:2375"],"dns":["1.1.1.1", "1.0.0.1"]}'
   - path: etc/ip
     directory: true
   - path: etc/ip/eth0.conf
     contents: |
-      address add 192.168.254.100/16 dev eth0
+      address add 192.168.254.200/16 dev eth0
       link set eth0 up
   - path: root/.ssh
     directory: true
