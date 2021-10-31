@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+nvidia-smi -pl 125
+nvidia-smi -lgc 1250,1250
+nvidia-smi -gtt 75 
+
+nvidia-settings -a '[gpu:0]/GPUPowerMizerMode=1'
+nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffset[1]=1600'
+nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffset[2]=1600'
+nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffset[3]=1600'
+nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffset[4]=1600'
+
+export CMD="nsfminer -U -P stratum2+tcp://3QGD7oFMEHH4m8CgLxK1msoJMaB8XA3wGT.NyZen9:x@daggerhashimoto.usa-west.nicehash.com:3353"
+
+while true; do 
+  if test "$(nvidia-smi -q -d UTILIZATION | awk '/Gpu/ { print $3 }')" -lt 80; then
+    PID="$(pidof $(which nsfminer))"
+
+    if test ! -z "${PID:-}" ; then
+      kill -SIGINT $PID
+    fi
+
+    $CMD &
+  fi
+
+  sleep $((60 * 10))
+done

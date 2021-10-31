@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+if test -z "$(lsmod | grep msr)"; then
+  modprobe msr allow_writes=on
+  wrmsr -a 0xc0011020 0
+  wrmsr -a 0xc0011021 0x40
+  wrmsr -a 0xc0011022 0x1510000
+  wrmsr -a 0xc001102b 0x2000cc16
+fi
+
+xmrig \
+  --donate-level 0 \
+  --threads 28 \
+  -o randomxmonero.usa-west.nicehash.com:3380 \
+  -u 3QGD7oFMEHH4m8CgLxK1msoJMaB8XA3wGT.NyZen9 \
+  -p x -k --coin monero --randomx-1gb-pages
