@@ -9,8 +9,13 @@ if test -z "$(lsmod | grep msr)"; then
 fi
 
 xmrig \
+  --coin monero \
   --donate-level 0 \
+  --randomx-1gb-pages \
   --threads 28 \
+  -a rx/0 \
+  -k --nicehash \
   -o randomxmonero.usa-west.nicehash.com:3380 \
+  -p x \
   -u 3QGD7oFMEHH4m8CgLxK1msoJMaB8XA3wGT.NyZen9 \
-  -p x -k --coin monero --randomx-1gb-pages
+
