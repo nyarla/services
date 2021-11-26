@@ -1,0 +1,105 @@
+version: '3'
+
+services:
+  # nitter
+  twitter:
+    build:
+      context: ./nitter/
+    restart: unless-stopped
+
+  # n8n
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      N8N_PORT: 80
+    volumes:
+      - n8n:/home/node
+    depends_on:
+      - twitter
+
+  # tt-rss
+  db:
+    image: postgres:12-alpine
+    restart: unless-stopped
+    env_file:
+      - ../../config/nitter/env
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/nitter/env
+    volumes:
+      - app:/var/www/html
+      - ../../external/tt-rss/docker-compose/config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - db
+      - n8n
+      - twitter
+    command: 'sh /opt/tt-rss/startup.sh'
+
+  backups:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/nitter/env
+    volumes:
+      - backups:/backups
+      - app:/var/www/html
+    depends_on:
+      - db
+    command: /opt/tt-rss/dcron.sh -f
+
+  updater:
+    build:
+      context: ../../external/tt-rss/docker-compose/app
+    restart: unless-stopped
+    env_file:
+      - ../../config/nitter/env
+    volumes:
+      - app:/var/www/html
+      - ../../external/tt-rss/docker-compose/config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - app
+    command: sh /opt/tt-rss/updater.sh
+
+  web:
+    build:
+      context: ./nginx/
+    restart: unless-stopped
+    volumes:
+      - app:/var/www/html:ro
+    depends_on:
+      - app
+      - n8n
+      - twitter
+
+  tailscale:
+    hostname: nitter
+    image: tailscale/tailscale:latest 
+    restart: unless-stopped
+    volumes:
+      - ../../config/nitter:/app:rw
+      - /dev/net/tun:/dev/net/tun
+      - tailscale:/var/lib
+    cap_add:
+      - NET_ADMIN
+    command: 'sh -c "apk add socat curl && (/usr/local/bin/tailscaled -port 41642 & socat TCP-LISTEN:8080,fork TCP:twitter:8080 & socat TCP-LISTEN:5678,fork TCP:n8n:80 & socat TCP-LISTEN:80,fork TCP:web:80)"'
+    ports:
+      - 41642:41642/udp
+    depends_on:
+      - twitter
+      - n8n
+      - web
+
+volumes:
+  app:
+  backups:
+  db:
+  n8n:
+  tailscale:

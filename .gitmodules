@@ -5,3 +5,4 @@
 	path = external/tailscale
 	url = https://github.com/tailscale/tailscale
 	branch = refs/tags/v1.14.0
+
