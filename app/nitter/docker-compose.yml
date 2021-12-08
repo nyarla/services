@@ -89,7 +89,7 @@ services:
       - tailscale:/var/lib
     cap_add:
       - NET_ADMIN
-    command: 'sh -c "apk add socat curl && (/usr/local/bin/tailscaled -port 41642 & socat TCP-LISTEN:8080,fork TCP:twitter:8080 & socat TCP-LISTEN:5678,fork TCP:n8n:80 & socat TCP-LISTEN:80,fork TCP:web:80)"'
+    command: 'sh -c "apk add socat curl && (/usr/local/bin/tailscaled -port 41642 & /usr/local/bin/tailscale up --accept-dns=false & socat TCP-LISTEN:8080,fork TCP:twitter:8080 & socat TCP-LISTEN:5678,fork TCP:n8n:80 & socat TCP-LISTEN:80,fork TCP:web:80)"'
     ports:
       - 41642:41642/udp
     depends_on:
